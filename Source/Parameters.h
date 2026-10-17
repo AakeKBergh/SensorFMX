@@ -17,7 +17,12 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout layout() {
         add(prefix+"Fine",name+"Tune (cents)",-100,100,prefix=="a" ? 0.0f : -3.0f);
         add(prefix+"Level",name+"Level",0,1,prefix=="a" ? 0.7f : 0.3f);
     }
-    add("cutoff", "Cutoff (Hz)", 20, 20000, 5500, 0.25f);
+    add("width","Width",0,1,0.2f);
+    add("air","Air",0,1,0.1f);
+    add("velocity","Velocity",0,1,0.45f);
+    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filterSlope",1},"Filter Slope",juce::StringArray{"LP12","LP24"},0));
+    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"chorus",1},"Chorus",juce::StringArray{"Off","I","II"},0));
+    add("cutoff", "Cutoff (Hz)", 20, 20000, 7200, 0.25f);
     add("resonance", "Resonance (Q)", 0.7071f, 8, 0.8f, 0.5f);
     add("filterAmount", "Filter Envelope (octaves)", -8, 8, 1);
     for (auto prefix : {juce::String("amp"), juce::String("filter")}) {

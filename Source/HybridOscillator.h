@@ -9,7 +9,7 @@ public:
     enum Wave { sine, triangle, saw, square };
     inline static constexpr std::array<float,9> harmonicRatios {0.5f,1,1.5f,2,3,4,5,6,8};
     static float ratioFor(int index) { return harmonicRatios[static_cast<size_t>(juce::jlimit(0,8,index))]; }
-    static float characterDepth(float value) { return 4.0f * value * value * value; }
+    static float characterDepth(float value) { return 4.0f * value * value * value * value; }
     void prepare(double rate) {
         sampleRate=rate;
         for(auto* s : {&shape,&character,&punch,&fine,&level,&ratio}) s->reset(rate,0.02);

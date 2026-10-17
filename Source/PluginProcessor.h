@@ -1,6 +1,7 @@
 #pragma once
 #include "Parameters.h"
 #include "SynthVoice.h"
+#include "SimpleChorus.h"
 class SensorFMXProcessor : public juce::AudioProcessor {
 public:
     SensorFMXProcessor();
@@ -13,7 +14,7 @@ public:
     const juce::String getName() const override { return "SENSOR FMX"; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
-    double getTailLengthSeconds() const override { return 12; }
+    double getTailLengthSeconds() const override { return 12.05; }
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
     void setCurrentProgram(int) override {}
@@ -26,6 +27,8 @@ private:
     juce::ValueTree defaultState;
     juce::Synthesiser synth;
     juce::SmoothedValue<float> master;
+    SimpleChorus chorus;
     std::atomic<float>* masterParameter;
+    std::atomic<float>* chorusParameter;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SensorFMXProcessor)
 };

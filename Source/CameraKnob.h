@@ -12,6 +12,9 @@ public:
         if(id.endsWith("Character")) slider.setTooltip("Add harmonic richness. Lower settings stay gentle; high settings become experimental.");
         if(id.endsWith("Punch")) slider.setTooltip("Add a short bright attack. Useful for plucks and bass definition.");
         if(id.endsWith("Fine")) slider.setTooltip("Fine tuning in cents. Detune the oscillators slightly for a wider sound.");
+        if(id=="width") slider.setTooltip("Widen the oscillators with gentle detune and stereo spread. Zero stays centred.");
+        if(id=="air") slider.setTooltip("Add a short, filtered breath at note onset. Combine with Punch for airy plucks.");
+        if(id=="velocity") slider.setTooltip("Control how strongly playing dynamics affect loudness and filter brightness.");
         label.setText(title,juce::dontSendNotification);
         label.setJustificationType(juce::Justification::centred);
         label.setFont(juce::FontOptions(11.0f)); label.setColour(juce::Label::textColourId,CustomLookAndFeel::muted);

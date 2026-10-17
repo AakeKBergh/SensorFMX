@@ -2,7 +2,7 @@
 #include "PluginEditor.h"
 SensorFMXProcessor::SensorFMXProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output",juce::AudioChannelSet::stereo(),true)),
-      state(*this,nullptr,"SensorFMX",Parameters::layout()), masterParameter(state.getRawParameterValue("master")) {
+      state(*this,nullptr,"SensorFMX",Parameters::layout()), masterParameter(state.getRawParameterValue("master")), chorusParameter(state.getRawParameterValue("chorus")) {
     for (int i=0;i<8;++i) synth.addVoice(new SynthVoice(state));
     synth.addSound(new SynthSound());
     // Avoid abrupt truncation of a stolen voice. Extra notes are ignored until a voice is free.
@@ -16,21 +16,26 @@ bool SensorFMXProcessor::isBusesLayoutSupported(const BusesLayout& l) const {
 void SensorFMXProcessor::prepareToPlay(double rate,int block) {
     synth.setCurrentPlaybackSampleRate(rate);
     for (int i=0;i<synth.getNumVoices();++i) static_cast<SynthVoice*>(synth.getVoice(i))->prepare(rate,block);
+    chorus.prepare(rate);
     master.reset(rate,0.02); master.setCurrentAndTargetValue(masterParameter->load());
 }
 void SensorFMXProcessor::processBlock(juce::AudioBuffer<float>& buffer,juce::MidiBuffer& midi) {
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
     synth.renderNextBlock(buffer,midi,0,buffer.getNumSamples());
+    chorus.setMode(static_cast<int>(chorusParameter->load()));
     master.setTargetValue(masterParameter->load());
     for (int i=0;i<buffer.getNumSamples();++i) {
         const float gain=master.getNextValue();
-        for (int c=0;c<buffer.getNumChannels();++c) buffer.setSample(c,i,buffer.getSample(c,i)*gain);
+        const bool mono=buffer.getNumChannels()==1;
+        const auto stereo=chorus.process({buffer.getSample(0,i),buffer.getSample(mono ? 0 : 1,i)});
+        if(mono) buffer.setSample(0,i,0.5f*(stereo[0]+stereo[1])*gain);
+        else for(int c=0;c<2;++c) buffer.setSample(c,i,stereo[static_cast<size_t>(c)]*gain);
     }
     midi.clear();
 }
 void SensorFMXProcessor::getStateInformation(juce::MemoryBlock& data) {
-    auto saved=state.copyState(); saved.setProperty("schemaVersion",2,nullptr);
+    auto saved=state.copyState(); saved.setProperty("schemaVersion",3,nullptr);
     if (auto xml=saved.createXml()) copyXmlToBinary(*xml,data);
 }
 void SensorFMXProcessor::setStateInformation(const void* data,int size) {
@@ -55,7 +60,7 @@ void SensorFMXProcessor::setStateInformation(const void* data,int size) {
         if(!get(prefix+"Wave").isValid() && get(prefix+"FM").isValid()) {
             put(prefix+"Wave",0);
             const float oldDepth=static_cast<float>(get(prefix+"FM").getProperty("value"));
-            put(prefix+"Character",std::cbrt(juce::jlimit(0.0f,1.0f,oldDepth/4.0f)));
+            put(prefix+"Character",std::pow(juce::jlimit(0.0f,1.0f,oldDepth/4.0f),0.25f));
             put(prefix+"Punch",0);
         }
         if(!get(prefix+"Harmonics").isValid() && get(prefix+"Ratio").isValid()) {
@@ -65,7 +70,15 @@ void SensorFMXProcessor::setStateInformation(const void* data,int size) {
             put(prefix+"Harmonics",static_cast<float>(nearest));
         }
     }
-    merged.setProperty("schemaVersion",2,nullptr);
+    const int version=static_cast<int>(incoming.getProperty("schemaVersion",1));
+    if(version<3) {
+        for(auto id : {"width","air","velocity","chorus","filterSlope"})
+            if(!get(id).isValid()) put(id,juce::String(id)=="velocity" ? 1.0f : 0.0f);
+        // Preserve v2 steady FM depth after the cubic-to-quartic rebalancing.
+        if(version==2) for(auto prefix : {juce::String("a"),juce::String("b")})
+            if(get(prefix+"Character").isValid()) put(prefix+"Character",std::pow(juce::jlimit(0.0f,1.0f,static_cast<float>(get(prefix+"Character").getProperty("value"))),0.75f));
+    }
+    merged.setProperty("schemaVersion",3,nullptr);
     state.replaceState(merged);
 }
 juce::AudioProcessorEditor* SensorFMXProcessor::createEditor() { return new SensorFMXEditor(*this); }

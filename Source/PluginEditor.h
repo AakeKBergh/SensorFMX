@@ -2,6 +2,7 @@
 #include "PluginProcessor.h"
 #include "CameraKnob.h"
 #include "WaveSelector.h"
+#include "HardwareButtons.h"
 class SensorFMXEditor : public juce::AudioProcessorEditor {
 public:
     explicit SensorFMXEditor(SensorFMXProcessor&);
@@ -15,6 +16,7 @@ private:
     CustomLookAndFeel look;
     std::vector<std::unique_ptr<CameraKnob>> knobs;
     WaveSelector waveA,waveB;
+    HardwareButtons slope,chorus;
     juce::TooltipWindow tooltips;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SensorFMXEditor)
 };

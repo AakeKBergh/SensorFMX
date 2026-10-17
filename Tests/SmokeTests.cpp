@@ -67,8 +67,9 @@ int oscillatorTests() {
     require(harmonicEnergy(waves[2],2)>0.01 && harmonicEnergy(waves[3],3)>0.005,"Saw/square harmonic structure missing");
     require(upperEnergy(waves[1])<upperEnergy(waves[2])*0.2,"Triangle is not soft"); ++checks;
     const auto gentle=oscillator(0,0.5f,0.25f,0), rich=oscillator(0,0.5f,0.65f,0);
-    require(upperEnergy(gentle)>1e-5 && upperEnergy(rich)>upperEnergy(gentle)*10,"Character does not progressively add harmonics"); ++checks;
-    require(HybridOscillator::characterDepth(0.5f)==0.5f && HybridOscillator::characterDepth(1)==4,"Character mapping not restrained"); ++checks;
+    require(upperEnergy(gentle)>1e-6 && upperEnergy(rich)>upperEnergy(gentle)*10,"Character does not progressively add harmonics"); ++checks;
+    require(HybridOscillator::characterDepth(0.5f)==0.25f && HybridOscillator::characterDepth(1)==4,"Character mapping not restrained"); ++checks;
+    require(HybridOscillator::characterDepth(0.2f)<0.01f && HybridOscillator::characterDepth(0.65f)<0.75f,"Character reaches strong FM too early"); ++checks;
     const auto attack=oscillator(0,0.5f,0,0.8f), tail=oscillator(0,0.5f,0,0.8f,3,96000);
     require(upperEnergy(attack)>0.001 && upperEnergy(tail)<upperEnergy(attack)*0.001,"Punch is not transient harmonic coloration"); ++checks;
     for(int w=0;w<4;++w) {
@@ -88,6 +89,9 @@ int oscillatorTests() {
     std::cout << "PASS: carrier references, harmonic spectra, Character, Punch, Shape, ratios and automation\n";
     return checks;
 }
+
+#include "PaletteTests.h"
+#include "PalettePatches.h"
 
 int main() {
     juce::ScopedJuceInitialiser_GUI init;
@@ -131,7 +135,7 @@ int main() {
         for(int c=0;c<2;++c) for(int n=0;n<512;++n)
             require(std::abs(chord.getSample(c,n)-sum.getSample(c,n))<1e-5f,"Eight-voice mix mismatch");
         ++checks;
-        SensorFMXProcessor pitch; set(pitch,"bLevel",0); set(pitch,"aWave",0); set(pitch,"aShape",0.5f); set(pitch,"aCharacter",0); set(pitch,"aPunch",0); set(pitch,"filterAmount",0); set(pitch,"cutoff",18000);
+        SensorFMXProcessor pitch; set(pitch,"width",0); set(pitch,"air",0); set(pitch,"bLevel",0); set(pitch,"aWave",0); set(pitch,"aShape",0.5f); set(pitch,"aCharacter",0); set(pitch,"aPunch",0); set(pitch,"filterAmount",0); set(pitch,"cutoff",18000);
         pitch.prepareToPlay(48000,256); juce::MidiBuffer pm;
         pm.addEvent(juce::MidiMessage::noteOn(1,69,1.0f),0); render(pitch,pm,50);
         juce::AudioBuffer<float> wave(2,48000); pitch.processBlock(wave,pm);
@@ -143,7 +147,7 @@ int main() {
         require(std::abs(crossings-494)<=1,"Pitch bend no longer works"); ++checks;
         // Filter removes upper content; its own ADSR can open a closed cutoff.
         auto filteredEnergy=[](float cutoff,float amount,float attack) {
-            SensorFMXProcessor instrument;
+            SensorFMXProcessor instrument; set(instrument,"width",0); set(instrument,"air",0); set(instrument,"velocity",0);
             set(instrument,"aCharacter",0); set(instrument,"aPunch",0); set(instrument,"bLevel",0);
             set(instrument,"cutoff",cutoff); set(instrument,"filterAmount",amount);
             set(instrument,"filterSustain",1); set(instrument,"ampAttack",attack);
@@ -167,6 +171,8 @@ int main() {
             render(automated,automationMidi,1);
         } ++checks;
         checks += oscillatorTests();
+        checks += paletteTests();
+        checks += patchTests();
         SensorFMXProcessor p;
         set(p,"aCharacter",0.37f); set(p,"filterRelease",1.8f); set(p,"master",0.42f);
         juce::MemoryBlock saved; p.getStateInformation(saved);
@@ -174,7 +180,7 @@ int main() {
         for(auto id : {"aCharacter","filterRelease","master"})
             require(std::abs(p.state.getRawParameterValue(id)->load()-restored.state.getRawParameterValue(id)->load())<1e-5f,"State round trip failed");
         ++checks;
-        require(p.getParameters().size()==26,"Unexpected parameter count"); ++checks;
+        require(p.getParameters().size()==31,"Unexpected parameter count"); ++checks;
         // Every parameter, including discrete selectors, must round-trip.
         for(auto* param : p.getParameters()) {
             auto* ranged=dynamic_cast<juce::RangedAudioParameter*>(param);
@@ -193,13 +199,18 @@ int main() {
         restored.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));
         require(restored.state.getRawParameterValue("aHarmonics")->load()==4,"Legacy ratio not mapped to 3");
         require(restored.state.getRawParameterValue("aWave")->load()==0,"Legacy sine not restored");
-        require(std::abs(restored.state.getRawParameterValue("aCharacter")->load()-0.5f)<1e-5f,"Legacy depth mapping failed");
+        require(std::abs(restored.state.getRawParameterValue("aCharacter")->load()-std::pow(0.125f,0.25f))<1e-5f,"Legacy depth mapping failed");
         require(restored.state.getRawParameterValue("aFine")->load()==12 && restored.state.getRawParameterValue("cutoff")->load()==1234,"Legacy common parameters lost");
         require(restored.state.getRawParameterValue("bWave")->load()==1,"Missing parameters did not default"); ++checks;
+        juce::ValueTree v2("SensorFMX"); v2.setProperty("schemaVersion",2,nullptr);
+        juce::ValueTree character("PARAM"); character.setProperty("id","aCharacter",nullptr); character.setProperty("value",0.5f,nullptr); v2.appendChild(character,nullptr);
+        xml=v2.createXml(); juce::AudioProcessor::copyXmlToBinary(*xml,saved); restored.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));
+        require(std::abs(HybridOscillator::characterDepth(restored.state.getRawParameterValue("aCharacter")->load())-0.5f)<1e-5f,"V2 FM depth not preserved");
+        require(restored.state.getRawParameterValue("width")->load()==0 && restored.state.getRawParameterValue("air")->load()==0 && restored.state.getRawParameterValue("velocity")->load()==1,"Legacy macro defaults incorrect"); ++checks;
         // Exercise all APVTS attachments and layout under an X display.
         SensorFMXProcessor ui;
         std::unique_ptr<juce::AudioProcessorEditor> editor(ui.createEditor());
-        require(editor->getWidth()==1120,"Editor failed to initialise");
+        require(editor->getWidth()==1180,"Editor failed to initialise");
         int sliders=0,buttons=0;
         std::function<void(juce::Component&)> visit=[&](juce::Component& component) {
             if(auto* slider=dynamic_cast<juce::Slider*>(&component)) {
@@ -214,9 +225,25 @@ int main() {
             }
             for(auto* child : component.getChildren()) visit(*child);
         };
-        visit(*editor); require(sliders==24 && buttons==8,"Missing visible controls");
-        set(ui,"aWave",2); ++checks;
-        juce::Image image(juce::Image::ARGB,1120,800,true);
+        visit(*editor); require(sliders==27 && buttons==12,"Missing visible controls");
+        set(ui,"aWave",2);
+        juce::TextButton *chorusI=nullptr,*chorusII=nullptr,*lp24=nullptr;
+        std::function<void(juce::Component&)> findButtons=[&](juce::Component& c) {
+            if(auto* b=dynamic_cast<juce::TextButton*>(&c)) {
+                if(b->getName()=="chorus CHORUS I") chorusI=b;
+                if(b->getName()=="chorus CHORUS II") chorusII=b;
+                if(b->getName()=="filterSlope LP24") lp24=b;
+            }
+            for(auto* child : c.getChildren()) findButtons(*child);
+        };
+        findButtons(*editor); require(chorusI && chorusII && lp24,"Missing macro buttons");
+        chorusI->onClick(); require(ui.state.getRawParameterValue("chorus")->load()==1 && chorusI->getToggleState(),"Chorus I attachment failed");
+        chorusII->onClick(); require(ui.state.getRawParameterValue("chorus")->load()==2 && !chorusI->getToggleState(),"Chorus exclusivity failed");
+        chorusII->onClick(); require(ui.state.getRawParameterValue("chorus")->load()==0 && !chorusII->getToggleState(),"Chorus repeated-press bypass failed");
+        lp24->onClick(); require(ui.state.getRawParameterValue("filterSlope")->load()==1,"Slope button attachment failed");
+        set(ui,"filterSlope",0); set(ui,"chorus",1); require(chorusI->getToggleState(),"Host chorus update not reflected in GUI");
+        set(ui,"chorus",0); ++checks;
+        juce::Image image(juce::Image::ARGB,1180,760,true);
         juce::Graphics graphics(image); editor->paintEntireComponent(graphics,true); ++checks;
         if (const auto* path=std::getenv("SENSOR_FMX_SCREENSHOT")) {
             juce::FileOutputStream stream{juce::File(juce::String::fromUTF8(path))};
