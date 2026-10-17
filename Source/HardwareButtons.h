@@ -9,10 +9,7 @@ public:
         for(size_t i=0;i<values.size();++i) {
             auto button=std::make_unique<juce::TextButton>(titles[static_cast<int>(i)]);
             button->setName(id+" "+titles[static_cast<int>(i)]);
-            button->setColour(juce::TextButton::buttonColourId,juce::Colour(0xff242725));
-            button->setColour(juce::TextButton::buttonOnColourId,juce::Colour(0xff524635));
-            button->setColour(juce::TextButton::textColourOffId,CustomLookAndFeel::muted);
-            button->setColour(juce::TextButton::textColourOnId,CustomLookAndFeel::text);
+            button->setComponentID(id+juce::String(static_cast<int>(i)));
             button->setTooltip(toggleOff ? "Press the active mode again to bypass chorus." : "Select low-pass filter slope.");
             button->onClick=[this,i] { attachment->setValueAsCompleteGesture(static_cast<float>(toggleOff && selected==values[i] ? 0 : values[i])); };
             addAndMakeVisible(*button); buttons.push_back(std::move(button));

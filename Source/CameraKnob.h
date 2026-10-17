@@ -7,6 +7,7 @@ public:
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow,false,104,21);
         slider.setName(title); slider.setTitle(title);
+        slider.getProperties().set("sensorProminent",id=="cutoff" || id=="width" || id=="air" || id=="master");
         if(id.endsWith("Shape")) slider.setTooltip("Reshape the waveform. Centre is neutral; Square adjusts pulse width.");
         if(id.endsWith("Harmonics")) slider.setTooltip("Choose a musical harmonic relationship for the coloration. Try 1, 2 or 3 first.");
         if(id.endsWith("Character")) slider.setTooltip("Add harmonic richness. Lower settings stay gentle; high settings become experimental.");
@@ -17,7 +18,7 @@ public:
         if(id=="velocity") slider.setTooltip("Control how strongly playing dynamics affect loudness and filter brightness.");
         label.setText(title,juce::dontSendNotification);
         label.setJustificationType(juce::Justification::centred);
-        label.setFont(juce::FontOptions(11.0f)); label.setColour(juce::Label::textColourId,CustomLookAndFeel::muted);
+        label.setFont(juce::FontOptions(11.0f)); label.setColour(juce::Label::textColourId,juce::Colour(0xffc3c4c6));
         addAndMakeVisible(slider); addAndMakeVisible(label);
         attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(state,id,slider);
         slider.textFromValueFunction=[id](double v) {

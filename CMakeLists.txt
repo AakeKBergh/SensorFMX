@@ -18,7 +18,7 @@ target_sources(SensorFMX PRIVATE
   Source/PluginEditor.cpp Source/PluginEditor.h
   Source/HybridOscillator.h Source/UnisonLayer.h Source/AirGenerator.h
   Source/VoiceFilter.h Source/SimpleChorus.h Source/SynthVoice.h Source/SynthSound.h
-  Source/Parameters.h Source/CustomLookAndFeel.h Source/CameraKnob.h Source/WaveSelector.h Source/HardwareButtons.h)
+  Source/Parameters.h Source/SensorStyle.h Source/SensorLookAndFeel.h Source/CustomLookAndFeel.h Source/CameraKnob.h Source/WaveSelector.h Source/HardwareButtons.h)
 target_compile_definitions(SensorFMX PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(SensorFMX PRIVATE juce::juce_audio_utils juce::juce_dsp PUBLIC juce::juce_recommended_config_flags)
 target_include_directories(SensorFMX PUBLIC "${JUCE_MODULES_DIR}")

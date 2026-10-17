@@ -209,7 +209,19 @@ int main() {
         require(restored.state.getRawParameterValue("width")->load()==0 && restored.state.getRawParameterValue("air")->load()==0 && restored.state.getRawParameterValue("velocity")->load()==1,"Legacy macro defaults incorrect"); ++checks;
         // Exercise all APVTS attachments and layout under an X display.
         SensorFMXProcessor ui;
+        std::vector<float> beforeEditor;
+        for(auto* parameter : ui.getParameters()) beforeEditor.push_back(parameter->getValue());
         std::unique_ptr<juce::AudioProcessorEditor> editor(ui.createEditor());
+        for(int i=0;i<ui.getParameters().size();++i)
+            require(ui.getParameters()[i]->getValue()==beforeEditor[static_cast<size_t>(i)],"Editor reset a parameter");
+        ++checks;
+        const auto children=editor->getChildren();
+        for(int i=0;i<children.size();++i) {
+            require(editor->getLocalBounds().contains(children[i]->getBounds()),"Control outside editor");
+            for(int j=i+1;j<children.size();++j)
+                require(!children[i]->getBounds().intersects(children[j]->getBounds()),"Overlapping control groups");
+        }
+        ++checks;
         require(editor->getWidth()==1180,"Editor failed to initialise");
         int sliders=0,buttons=0;
         std::function<void(juce::Component&)> visit=[&](juce::Component& component) {

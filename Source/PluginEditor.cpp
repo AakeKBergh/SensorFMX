@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "SensorStyle.h"
 SensorFMXEditor::SensorFMXEditor(SensorFMXProcessor& p)
     : AudioProcessorEditor(p),processor(p),waveA(p.state,"aWave"),waveB(p.state,"bWave"),
       slope(p.state,"filterSlope",{"LP12","LP24"},{0,1},false),
@@ -26,7 +27,7 @@ void SensorFMXEditor::place(int first,int count,juce::Rectangle<int> area) {
     for(int i=0;i<count;++i) knobs[static_cast<size_t>(first+i)]->setBounds(area.removeFromLeft(width).reduced(6,0));
 }
 void SensorFMXEditor::resized() {
-    waveA.setBounds(82,112,464,30); waveB.setBounds(672,112,464,30);
+    waveA.setBounds(82,110,464,38); waveB.setBounds(672,110,464,38);
     place(0,6,{26,150,548,103});
     place(6,6,{606,150,548,103});
     place(12,2,{30,300,350,114});
@@ -39,44 +40,19 @@ void SensorFMXEditor::resized() {
 
 }
 void SensorFMXEditor::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colour(0xff242725));
-    // Almost invisible horizontal machining lines; deterministic and image-free.
-    for(int y=0;y<getHeight();y+=3) {
-        g.setColour(juce::Colours::black.withAlpha(y%9==0 ? 0.07f : 0.025f));
-        g.drawHorizontalLine(y,0,static_cast<float>(getWidth()));
-    }
-    g.setColour(CustomLookAndFeel::text);
-    g.setFont(juce::FontOptions(32.0f)); g.drawText("SENSOR",28,10,141,40,juce::Justification::centredLeft);
-    g.setFont(juce::FontOptions(32.0f,juce::Font::bold)); g.drawText("FMX",169,10,100,40,juce::Justification::centredLeft);
-    g.setColour(CustomLookAndFeel::muted);
-    g.setFont(juce::Font(juce::FontOptions(10.0f)).withExtraKerningFactor(0.13f));
-    g.drawText("FM / SUBTRACTIVE HYBRID SYNTHESIZER",30,49,600,20,juce::Justification::centredLeft);
-    g.drawText("POLYPHONIC  /  08",870,28,264,22,juce::Justification::centredRight);
-    auto line=[&](int y,int left,int right) {
-        g.setColour(juce::Colours::black.withAlpha(0.65f)); g.drawHorizontalLine(y,static_cast<float>(left),static_cast<float>(right));
-        g.setColour(juce::Colours::white.withAlpha(0.055f)); g.drawHorizontalLine(y+1,static_cast<float>(left),static_cast<float>(right));
-    };
-    g.setFont(juce::FontOptions(10.0f)); g.setColour(CustomLookAndFeel::muted);
+    SensorStyle::panel(g,getWidth(),getHeight());
+    SensorStyle::branding(g,"FMX","FM / SUBTRACTIVE HYBRID SYNTHESIZER");
+    g.setFont(juce::FontOptions(10.0f));g.setColour(SensorStyle::secondary);
+    g.drawText("POLYPHONIC / 08",870,28,264,22,juce::Justification::centredRight);
     g.drawText("WAVE",30,112,48,30,juce::Justification::centredLeft);
     g.drawText("WAVE",620,112,48,30,juce::Justification::centredLeft);
-    for(int y : {78,266,424,590}) line(y,28,1152);
-    g.setColour(juce::Colours::black.withAlpha(0.45f));
-    g.drawVerticalLine(590,94,250); g.drawVerticalLine(402,300,410);
-    g.drawVerticalLine(690,308,402); g.drawVerticalLine(496,464,580); g.drawVerticalLine(944,624,744);
-    auto title=[&](int x,int y,const juce::String& text) {
-        g.setColour(CustomLookAndFeel::amber.withAlpha(0.9f));
-        g.setFont(juce::Font(juce::FontOptions(12.0f,juce::Font::bold)).withExtraKerningFactor(0.12f));
-        g.drawText(text,x,y,480,24,juce::Justification::centredLeft);
-    };
-    title(30,86,"OSC A"); title(620,86,"OSC B");
-    title(30,274,"TONE / SPACE");
-    title(430,304,"FILTER SLOPE"); title(748,304,"CHORUS");
-    title(30,432,"FILTER"); title(526,432,"FILTER ENVELOPE");
-    title(30,598,"AMP / PERFORMANCE");
-    g.setFont(juce::FontOptions(10.0f)); g.setColour(CustomLookAndFeel::muted);
+    g.setColour(SensorStyle::rule);
+    for(int y : {80,266,424,590}) g.drawHorizontalLine(y,28,1152);
+    for(auto line : {juce::Rectangle<int>(590,94,1,160),{402,300,1,110},{690,308,1,94},{496,464,1,120},{944,624,1,120}}) g.fillRect(line);
+    const auto title=[&](int x,int y,const juce::String& text) { SensorStyle::heading(g,text,x,y,480); };
+    title(30,84,"OSCILLATOR A");title(620,84,"OSCILLATOR B");
+    title(30,272,"TONE / SPACE");title(430,302,"FILTER SLOPE");title(748,302,"CHORUS");
+    title(30,430,"FILTER");title(526,430,"FILTER ENVELOPE");title(30,596,"AMP / PERFORMANCE");
+    g.setFont(juce::FontOptions(10.0f));g.setColour(SensorStyle::secondary);
     g.drawText("PRESS ACTIVE MODE TO BYPASS",748,378,390,20,juce::Justification::centredLeft);
-    for(auto point : {juce::Point<float>{12,12},{1168,12},{12,748},{1168,748}}) {
-        g.setColour(juce::Colour(0xff101311)); g.fillEllipse(point.x-3,point.y-3,6,6);
-        g.setColour(juce::Colour(0xff474a43)); g.drawLine(point.x-1.5f,point.y,point.x+1.5f,point.y,0.7f);
-    }
 }

@@ -116,7 +116,9 @@ Eight MIDI voices remain available, including release tails. Additional notes ar
 
 ## GUI and automation
 
-A single graphite front panel uses fine etched dividers, quiet machining lines, off-white industrial labels and warm amber illumination. Custom knurled rotary dials have fine perimeter ridges and an illuminated index/arc. Four aligned functional areas contain mirrored oscillators; Tone / Space with larger Width/Air dials and slope/chorus buttons; the filter with a dominant Cutoff; and Amp / Performance with Velocity and a separated Master. Each oscillator has four waveform buttons plus six dials; Harmonics is stepped. Value labels use Hz/kHz, cents, percentages, ms/seconds and simple harmonic positions. Editable values support those displayed units. Drag dials to automate, double-click to restore defaults, or edit the value text.
+The GUI uses SENSOR FLUX's actual production drawing code: cooler graphite surfaces, tracked family branding, metallic bevelled rotary dials, dotted scales, waveform glyph buttons, and restrained red indicators. Larger Cutoff, Width, Air and Master controls use white arcs with red tips. Unboxed value readouts retain FMX's musical units and editing behavior.
+
+Four compact, aligned areas contain mirrored oscillators; Tone / Space with Width/Air and slope/chorus controls; Filter plus Filter ADSR; and Amp / Performance with Velocity and a separated Master. Active chorus buttons retain readable labels and a small LED. See [SENSOR family design](docs/sensor-family-design.md) for source provenance, palette tokens, reusable components and model-specific adaptations. This redesign changes no synthesis or parameter behavior.
 
 Shared parameter IDs (`aLevel`, `aFine`, filter, envelopes, master, and B equivalents) are retained. New oscillator IDs are `aWave`, `aShape`, `aHarmonics`, `aCharacter`, `aPunch` and B equivalents. Removed technical parameters are not exposed as host controls. Schema v3 state restores every parameter; missing parameters use deterministic new-patch defaults. Legacy v1 project state keeps common values, maps old ratios to the nearest supported harmonic ratio, and approximates old FM depth with a sine carrier and Character. V1/V2 states load Width, Air and Chorus off, LP12, and full legacy velocity response. V2 Character is remapped to preserve its previous cubic modulation depth under the new quartic curve. Only saved scalar Character values can be remapped; older host automation envelopes retain their original normalized values and may sound different after the curve change. The old FM decay behavior cannot be reproduced exactly, and old automation lanes for removed IDs cannot migrate automatically.
 
@@ -127,9 +129,9 @@ Shared parameter IDs (`aLevel`, `aFine`, filter, envelopes, master, and B equiva
 - `SynthVoice.h`, `SynthSound.h`: per-voice DSP, envelopes and MIDI behavior.
 - `Parameters.h`: stable APVTS parameter definitions, ranges and defaults.
 - `PluginProcessor.*`: voice mixing, master gain, state versioning and legacy fallback.
-- `PluginEditor.*`, `CameraKnob.h`, `WaveSelector.h`, `HardwareButtons.h`, `CustomLookAndFeel.h`: UI components, host attachments and procedural hardware styling.
+- `PluginEditor.*`, `CameraKnob.h`, `WaveSelector.h`, `HardwareButtons.h`, `SensorLookAndFeel.h`, `SensorStyle.h`: UI components, host attachments and procedural hardware styling.
 - `Tests/SmokeTests.cpp`, `PaletteTests.h`, `PalettePatches.h`: conventional waveform references, harmonic spectra, Character/Punch/Shape, ratio mapping, automation, polyphony, pitch, sustain/release, state and GUI rendering.
 
-Linux VST3 and Standalone builds pass, and the smoke suite passes 63 checks. Validation covers three sample rates (44.1/48/96 kHz), waveform and macro spectra, stereo/mono behavior, chorus modes, LP12/LP24 frequency slopes, velocity, eight-note polyphony, state migration, GUI attachments and the four musical recipes. Windows/macOS compilation, display scaling and DAW playback still require verification on those platforms.
+Linux VST3 and Standalone builds pass, and the smoke suite passes 65 checks. Validation covers three sample rates (44.1/48/96 kHz), waveform and macro spectra, stereo/mono behavior, chorus modes, LP12/LP24 frequency slopes, velocity, eight-note polyphony, state migration, GUI attachments and the four musical recipes. Windows/macOS compilation, display scaling and DAW playback still require verification on those platforms.
 
 JUCE is a separate dependency; review its licensing terms before distribution.

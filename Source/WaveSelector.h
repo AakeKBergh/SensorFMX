@@ -9,11 +9,7 @@ public:
         const char* names[]{"SINE","TRIANGLE","SAW","SQUARE"};
         for(int i=0;i<4;++i) {
             auto& b=buttons[static_cast<size_t>(i)]; b.setButtonText(names[i]); b.setName(id+" "+names[i]);
-            b.setColour(juce::TextButton::buttonColourId,juce::Colour(0xff242725));
-            b.setColour(juce::TextButton::buttonOnColourId,juce::Colour(0xff524635));
-            b.setColour(juce::TextButton::textColourOffId,CustomLookAndFeel::muted);
-            b.setColour(juce::TextButton::textColourOnId,CustomLookAndFeel::text);
-            b.setConnectedEdges((i>0 ? juce::Button::ConnectedOnLeft : 0) | (i<3 ? juce::Button::ConnectedOnRight : 0));
+            b.setComponentID("wave_"+juce::String(i));
             b.onClick=[this,i] { attachment->setValueAsCompleteGesture(static_cast<float>(i)); };
             addAndMakeVisible(b);
         }
