@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(SensorFMX VERSION 0.1.0 LANGUAGES C CXX)
+project(SensorFMX VERSION 0.2.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(JUCE_DIR "" CACHE PATH "Path to JUCE 8.0.6 checkout (optional)")
@@ -13,7 +13,11 @@ endif()
 juce_add_plugin(SensorFMX COMPANY_NAME "Sensor Instruments" BUNDLE_ID "com.sensorinstruments.sensorfmx" PLUGIN_MANUFACTURER_CODE Sens PLUGIN_CODE Sfmx
   FORMATS VST3 Standalone PRODUCT_NAME "SENSOR FMX" IS_SYNTH TRUE NEEDS_MIDI_INPUT TRUE
   NEEDS_MIDI_OUTPUT FALSE IS_MIDI_EFFECT FALSE COPY_PLUGIN_AFTER_BUILD FALSE)
-target_sources(SensorFMX PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp)
+target_sources(SensorFMX PRIVATE
+  Source/PluginProcessor.cpp Source/PluginProcessor.h
+  Source/PluginEditor.cpp Source/PluginEditor.h
+  Source/HybridOscillator.h Source/SynthVoice.h Source/SynthSound.h
+  Source/Parameters.h Source/CustomLookAndFeel.h Source/CameraKnob.h Source/WaveSelector.h)
 target_compile_definitions(SensorFMX PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(SensorFMX PRIVATE juce::juce_audio_utils juce::juce_dsp PUBLIC juce::juce_recommended_config_flags)
 target_include_directories(SensorFMX PUBLIC "${JUCE_MODULES_DIR}")

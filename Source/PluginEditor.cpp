@@ -1,63 +1,68 @@
 #include "PluginEditor.h"
-SensorFMXEditor::SensorFMXEditor(SensorFMXProcessor& p):AudioProcessorEditor(p),processor(p) {
-    look.setColour(juce::Slider::thumbColourId,juce::Colour(0xffc7b899));
-    look.setColour(juce::Slider::rotarySliderFillColourId,juce::Colour(0xffc7b899));
-    look.setColour(juce::Slider::rotarySliderOutlineColourId,juce::Colour(0xff45494d));
-    look.setColour(juce::Slider::textBoxTextColourId,juce::Colour(0xffe5e5df));
-    look.setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);
+SensorFMXEditor::SensorFMXEditor(SensorFMXProcessor& p)
+    : AudioProcessorEditor(p),processor(p),waveA(p.state,"aWave"),waveB(p.state,"bWave"),tooltips(this,700) {
     setLookAndFeel(&look);
-    for (auto prefix : {juce::String("a"),juce::String("b")}) {
-        add(prefix+"Level","Level"); add(prefix+"Ratio","Ratio"); add(prefix+"FM","FM Amount");
-        add(prefix+"Decay","FM Decay (s)"); add(prefix+"Fine","Fine (cents)");
+    addAndMakeVisible(waveA); addAndMakeVisible(waveB);
+    for(auto prefix : {juce::String("a"),juce::String("b")}) {
+        add(prefix+"Shape","SHAPE"); add(prefix+"Harmonics","HARMONICS"); add(prefix+"Character","CHARACTER");
+        add(prefix+"Punch","PUNCH"); add(prefix+"Fine","TUNE"); add(prefix+"Level","LEVEL");
     }
-    add("cutoff","Cutoff (Hz)"); add("resonance","Resonance (Q)"); add("filterAmount","Env (octaves)");
-    for (auto name : {"Attack","Decay","Sustain","Release"}) add(juce::String("filter")+name,juce::String(name)+(juce::String(name)=="Sustain" ? "" : " (s)"));
-    for (auto name : {"Attack","Decay","Sustain","Release"}) add(juce::String("amp")+name,juce::String(name)+(juce::String(name)=="Sustain" ? "" : " (s)"));
-    add("master","Volume");
-    setSize(1050,660);
+    add("cutoff","CUTOFF"); add("resonance","RESONANCE"); add("filterAmount","ENV AMOUNT");
+    for(auto name : {"Attack","Decay","Sustain","Release"}) add(juce::String("filter")+name,juce::String(name).toUpperCase());
+    for(auto name : {"Attack","Decay","Sustain","Release"}) add(juce::String("amp")+name,juce::String(name).toUpperCase());
+    add("master","VOLUME");
+    setSize(1120,800);
 }
 SensorFMXEditor::~SensorFMXEditor() { setLookAndFeel(nullptr); }
 void SensorFMXEditor::add(const juce::String& id,const juce::String& title) {
-    auto k=std::make_unique<Knob>();
-    k->slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    k->slider.setTextBoxStyle(juce::Slider::TextBoxBelow,false,100,22);
-    k->slider.setNumDecimalPlacesToDisplay(2);
-    k->slider.setName(title);
-    k->label.setText(title,juce::dontSendNotification); k->label.setJustificationType(juce::Justification::centred);
-    k->label.setColour(juce::Label::textColourId,juce::Colour(0xffd5d7d8));
-    addAndMakeVisible(k->slider); addAndMakeVisible(k->label);
-    k->attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.state,id,k->slider);
-    const int decimals = id == "cutoff" ? 0 : (id.endsWith("Attack") || id.endsWith("Decay") || id.endsWith("Release") ? 3 : 2);
-    k->slider.textFromValueFunction = [decimals](double value) { return juce::String(value,decimals); };
-    k->slider.updateText();
-    knobs.push_back(std::move(k));
+    auto knob=std::make_unique<CameraKnob>(processor.state,id,title);
+    addAndMakeVisible(*knob); knobs.push_back(std::move(knob));
 }
 void SensorFMXEditor::place(int first,int count,juce::Rectangle<int> area) {
-    auto width=area.getWidth()/count;
-    for(int i=0;i<count;++i) {
-        auto cell=area.removeFromLeft(width).reduced(4,0);
-        knobs[static_cast<size_t>(first+i)]->label.setBounds(cell.removeFromTop(24));
-        knobs[static_cast<size_t>(first+i)]->slider.setBounds(cell);
-    }
+    const int width=area.getWidth()/count;
+    for(int i=0;i<count;++i) knobs[static_cast<size_t>(first+i)]->setBounds(area.removeFromLeft(width).reduced(6,0));
 }
 void SensorFMXEditor::resized() {
-    place(0,5,{24,146,493,120}); place(5,5,{533,146,493,120});
-    place(10,7,{24,330,1002,120}); place(17,4,{24,514,780,120}); place(21,1,{836,514,190,120});
+    waveA.setBounds(88,148,432,30); waveB.setBounds(640,148,432,30);
+    place(0,3,{28,192,512,104}); place(3,3,{28,306,512,104});
+    place(6,3,{580,192,512,104}); place(9,3,{580,306,512,104});
+    place(12,3,{28,478,450,122}); place(15,4,{500,478,592,122});
+    place(19,4,{28,660,760,122}); place(23,1,{866,660,210,122});
 }
 void SensorFMXEditor::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colour(0xff202326));
-    g.setColour(juce::Colour(0xffe6e5df));
-    g.setFont(juce::FontOptions(34.0f)); g.drawText("SENSOR",26,20,150,42,juce::Justification::centredLeft);
-    g.setFont(juce::FontOptions(34.0f,juce::Font::bold)); g.drawText("FMX",182,20,120,42,juce::Justification::centredLeft);
-    g.setFont(juce::FontOptions(12.0f)); g.setColour(juce::Colour(0xff9b9e9f));
-    g.drawText("FM / SUBTRACTIVE HYBRID SYNTHESIZER",27,65,600,20,juce::Justification::centredLeft);
-    auto panel=[&](juce::Rectangle<int> r,const juce::String& title) {
-        g.setColour(juce::Colour(0xff2c3034)); g.fillRoundedRectangle(r.toFloat(),4);
-        g.setColour(juce::Colour(0xff4a4e51)); g.drawHorizontalLine(r.getY()+35,static_cast<float>(r.getX()+14),static_cast<float>(r.getRight()-14));
-        g.setColour(juce::Colour(0xffc7b899)); g.setFont(juce::FontOptions(13.0f,juce::Font::bold));
-        g.drawText(title,r.reduced(16,4).removeFromTop(28),juce::Justification::centredLeft);
+    g.fillAll(juce::Colour(0xff242725));
+    // Almost invisible horizontal machining lines; deterministic and image-free.
+    for(int y=0;y<getHeight();y+=3) {
+        g.setColour(juce::Colours::black.withAlpha(y%9==0 ? 0.07f : 0.025f));
+        g.drawHorizontalLine(y,0,static_cast<float>(getWidth()));
+    }
+    g.setColour(CustomLookAndFeel::text);
+    g.setFont(juce::FontOptions(32.0f)); g.drawText("SENSOR",28,23,141,40,juce::Justification::centredLeft);
+    g.setFont(juce::FontOptions(32.0f,juce::Font::bold)); g.drawText("FMX",169,23,100,40,juce::Justification::centredLeft);
+    g.setColour(CustomLookAndFeel::muted);
+    g.setFont(juce::Font(juce::FontOptions(10.0f)).withExtraKerningFactor(0.13f));
+    g.drawText("FM / SUBTRACTIVE HYBRID SYNTHESIZER",30,66,600,20,juce::Justification::centredLeft);
+    g.drawText("POLYPHONIC  /  08",810,40,264,22,juce::Justification::centredRight);
+    auto line=[&](int y,int left,int right) {
+        g.setColour(juce::Colours::black.withAlpha(0.65f)); g.drawHorizontalLine(y,static_cast<float>(left),static_cast<float>(right));
+        g.setColour(juce::Colours::white.withAlpha(0.055f)); g.drawHorizontalLine(y+1,static_cast<float>(left),static_cast<float>(right));
     };
-    panel({16,104,509,176},"OSCILLATOR A"); panel({525,104,509,176},"OSCILLATOR B");
-    panel({16,288,1018,176},"FILTER  /  ENVELOPE ADSR");
-    panel({16,472,796,176},"AMPLIFIER  /  ADSR"); panel({820,472,214,176},"MASTER");
+    g.setFont(juce::FontOptions(10.0f)); g.setColour(CustomLookAndFeel::muted);
+    g.drawText("WAVE",32,148,48,30,juce::Justification::centredLeft);
+    g.drawText("WAVE",584,148,48,30,juce::Justification::centredLeft);
+    line(102,28,1092); line(432,28,1092); line(616,28,1092);
+    g.setColour(juce::Colours::black.withAlpha(0.45f)); g.drawVerticalLine(560,120,410); g.drawVerticalLine(842,638,782);
+    g.drawVerticalLine(487,478,596);
+    auto title=[&](int x,int y,const juce::String& text) {
+        g.setColour(CustomLookAndFeel::amber.withAlpha(0.9f));
+        g.setFont(juce::Font(juce::FontOptions(12.0f,juce::Font::bold)).withExtraKerningFactor(0.12f));
+        g.drawText(text,x,y,480,24,juce::Justification::centredLeft);
+    };
+    title(32,114,"OSCILLATOR A"); title(584,114,"OSCILLATOR B");
+    title(32,444,"FILTER"); title(512,444,"FILTER ENVELOPE");
+    title(32,630,"AMPLIFIER"); title(878,630,"MASTER");
+    for(auto point : {juce::Point<float>{12,12},{1108,12},{12,788},{1108,788}}) {
+        g.setColour(juce::Colour(0xff101311)); g.fillEllipse(point.x-3,point.y-3,6,6);
+        g.setColour(juce::Colour(0xff474a43)); g.drawLine(point.x-1.5f,point.y,point.x+1.5f,point.y,0.7f);
+    }
 }

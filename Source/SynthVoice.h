@@ -1,17 +1,13 @@
 #pragma once
-#include "FMOscillator.h"
+#include "HybridOscillator.h"
+#include "SynthSound.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
-class SynthSound : public juce::SynthesiserSound {
-public:
-    bool appliesToNote(int) override { return true; }
-    bool appliesToChannel(int) override { return true; }
-};
 class SynthVoice : public juce::SynthesiserVoice {
 public:
     explicit SynthVoice(juce::AudioProcessorValueTreeState& state) {
         for (auto prefix : {juce::String("a"), juce::String("b")})
-            for (auto suffix : {"Level", "Ratio", "FM", "Decay", "Fine"}) params.push_back(state.getRawParameterValue(prefix+suffix));
+            for (auto suffix : {"Wave", "Shape", "Harmonics", "Character", "Punch", "Fine", "Level"}) params.push_back(state.getRawParameterValue(prefix+suffix));
         for (auto id : {"cutoff","resonance","filterAmount","ampAttack","ampDecay","ampSustain","ampRelease","filterAttack","filterDecay","filterSustain","filterRelease"})
             params.push_back(state.getRawParameterValue(id));
     }
@@ -52,20 +48,20 @@ public:
 private:
     float v(int i) const { return params[static_cast<size_t>(i)]->load(); }
     void update(bool immediate) {
-        a.set(v(0),v(1),v(2),v(4),v(3),immediate);
-        b.set(v(5),v(6),v(7),v(9),v(8),immediate);
+        a.set(static_cast<int>(v(0)),v(1),static_cast<int>(v(2)),v(3),v(4),v(5),v(6),immediate);
+        b.set(static_cast<int>(v(7)),v(8),static_cast<int>(v(9)),v(10),v(11),v(12),v(13),immediate);
         auto put = [immediate](auto& s,float value) { if (immediate) s.setCurrentAndTargetValue(value); else s.setTargetValue(value); };
-        put(cutoff,v(10)); put(resonance,v(11)); put(amount,v(12));
+        put(cutoff,v(14)); put(resonance,v(15)); put(amount,v(16));
         auto envelope = [](juce::ADSR& e, const juce::ADSR::Parameters& next, bool force) {
             const auto& old = e.getParameters();
             if (force || old.attack != next.attack || old.decay != next.decay || old.sustain != next.sustain || old.release != next.release)
                 e.setParameters(next);
         };
-        envelope(amp,{v(13),v(14),v(15),v(16)},immediate);
-        envelope(env,{v(17),v(18),v(19),v(20)},immediate);
+        envelope(amp,{v(17),v(18),v(19),v(20)},immediate);
+        envelope(env,{v(21),v(22),v(23),v(24)},immediate);
     }
     std::vector<std::atomic<float>*> params;
-    FMOscillator a,b;
+    HybridOscillator a,b;
     juce::ADSR amp,env;
     juce::dsp::StateVariableTPTFilter<float> filter;
     juce::SmoothedValue<float> cutoff,resonance,amount;

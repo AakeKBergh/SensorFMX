@@ -9,15 +9,17 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout layout() {
     };
     for (auto prefix : {juce::String("a"), juce::String("b")}) {
         auto name = "OSC " + prefix.toUpperCase() + " ";
-        add(prefix+"Level", name+"Level", 0, 1, prefix == "a" ? 0.7f : 0.4f);
-        add(prefix+"Ratio", name+"Ratio", 0.25f, 16, 2, 0.5f);
-        add(prefix+"FM", name+"FM Amount", 0, 12, 2);
-        add(prefix+"Decay", name+"FM Decay (s)", 0.005f, 8, 0.8f, 0.35f);
-        add(prefix+"Fine", name+"Fine (cents)", -100, 100, 0);
+        p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{prefix+"Wave",1}, name+"Wave", juce::StringArray{"Sine","Triangle","Saw","Square"}, prefix=="a" ? 2 : 1));
+        add(prefix+"Shape",name+"Shape",0,1,0.5f);
+        p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{prefix+"Harmonics",1}, name+"Harmonics", juce::StringArray{"0.5","1","1.5","2","3","4","5","6","8"},3));
+        add(prefix+"Character",name+"Character",0,1,prefix=="a" ? 0.12f : 0.07f);
+        add(prefix+"Punch",name+"Punch",0,1,prefix=="a" ? 0.1f : 0.0f);
+        add(prefix+"Fine",name+"Tune (cents)",-100,100,prefix=="a" ? 0.0f : -3.0f);
+        add(prefix+"Level",name+"Level",0,1,prefix=="a" ? 0.7f : 0.3f);
     }
-    add("cutoff", "Cutoff (Hz)", 20, 20000, 6000, 0.25f);
+    add("cutoff", "Cutoff (Hz)", 20, 20000, 5500, 0.25f);
     add("resonance", "Resonance (Q)", 0.7071f, 8, 0.8f, 0.5f);
-    add("filterAmount", "Filter Envelope (octaves)", -8, 8, 2);
+    add("filterAmount", "Filter Envelope (octaves)", -8, 8, 1);
     for (auto prefix : {juce::String("amp"), juce::String("filter")}) {
         add(prefix+"Attack", prefix+" Attack (s)", 0.001f, 8, 0.01f, 0.3f);
         add(prefix+"Decay", prefix+" Decay (s)", 0.005f, 8, 0.3f, 0.3f);

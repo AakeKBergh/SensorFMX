@@ -23,6 +23,7 @@ public:
     void setStateInformation(const void*,int) override;
     juce::AudioProcessorValueTreeState state;
 private:
+    juce::ValueTree defaultState;
     juce::Synthesiser synth;
     juce::SmoothedValue<float> master;
     std::atomic<float>* masterParameter;
